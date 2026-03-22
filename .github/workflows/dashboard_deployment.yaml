@@ -16,25 +16,18 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install lftp
-        run: sudo apt-get update && sudo apt-get install -y lftp
-
-      - name: Deploy via SFTP with lftp
-        env:
-          SFTP_USER: ${{ secrets.FTP_USERNAME }}
-          SFTP_PASS: ${{ secrets.FTP_PASSWORD }}
-          SFTP_HOST: 185.194.90.29
-          REMOTE_DIR: /home/cfefacbc/dashboards.betashift.ai
-        run: |
-          lftp -u "$SFTP_USER","$SFTP_PASS" sftp://"$SFTP_HOST" <<EOF
-          set sftp:auto-confirm yes
-          set net:max-retries 3
-          set net:reconnect-interval-base 5
-          mirror --reverse --verbose --delete \
-            --exclude ^\.git/ \
-            --exclude ^\.github/ \
-            --exclude ^README\.md$ \
-            --exclude ^LICENSE$ \
-            ./ $REMOTE_DIR/
-          bye
-          EOF
+      - name: Sync files via SFTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: 185.194.90.29
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          protocol: sftp
+          server-dir: /home/cfefacbc/dashboards.betashift.ai/
+          local-dir: ./
+          exclude: |
+            **/.git*
+            **/.git*/**
+            .github/**
+            README.md
+            LICENSE
