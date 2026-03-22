@@ -23,7 +23,7 @@ jobs:
         env:
           SFTP_USER: ${{ secrets.FTP_USERNAME }}
           SFTP_PASS: ${{ secrets.FTP_PASSWORD }}
-          SFTP_HOST: dashboards.betashift.ai
+          SFTP_HOST: 185.194.90.29
           REMOTE_DIR: /home/cfefacbc/dashboards.betashift.ai
         run: |
           lftp -u "$SFTP_USER","$SFTP_PASS" sftp://"$SFTP_HOST" <<EOF
