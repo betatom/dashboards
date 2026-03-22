@@ -1,32 +1,30 @@
-name: Deploy to FTP
- 
+name: Deploy via SFTP
+
 on:
   push:
     branches:
       - main
- 
+
   workflow_dispatch:
- 
+
 jobs:
   deploy:
-    name: Deploy static files via FTP
+    name: Deploy static files via SFTP
     runs-on: ubuntu-latest
- 
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
- 
-      - name: Sync files via FTP
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+
+      - name: Sync files via SFTP
+        uses: wlixcc/SFTP-Deploy-Action@v1.2.4
         with:
           server: dashboards.betashift.ai
+          port: 22
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
-          server-dir: /home/cfefacbc/dashboards.betashift.ai/
-          local-dir: ./
-          exclude: |
-            **/.git*
-            **/.git*/**
-            .github/**
-            README.md
-            LICENSE
+          local_path: "./*"
+          remote_path: /home/cfefacbc/dashboards.betashift.ai/
+          sftp_only: true
+          delete_remote_files: false
+          exclude: ".git*,.github/*,README.md,LICENSE"
