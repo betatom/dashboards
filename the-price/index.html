@@ -330,10 +330,10 @@ function aggregateMaster(rows, dateFilter) {
     filtered.forEach(r => {
         s.spend += toNum(r['Amount spent']);
         s.reach += toNum(r['Reach']);
-        s.clicks += toNum(r['Link Clicks']);
+        s.clicks += toNum(r['Link Clicks'] || r['Link clicks']);
         s.impressions += toNum(r['Impressions']);
         s.purchases += toNum(r['Purchases']);
-        s.convValue += toNum(r['Purchases conversion value']);
+        s.convValue += toNum(r['Purchase Value'] || r['Purchases conversion value']);
     });
     s.ctr = s.impressions > 0 ? (s.clicks / s.impressions) * 100 : 0;
     s.cpc = s.clicks > 0 ? s.spend / s.clicks : 0;
@@ -376,7 +376,7 @@ function aggregateByName(rows, nameCol, dateCol, dateFilter) {
         m.impressions += toNum(r['Impressions']);
         m.clicks += toNum(r['Link clicks'] || r['Link Clicks']);
         m.purchases += toNum(r['Purchases']);
-        m.convValue += toNum(r['Purchases conversion value']);
+        m.convValue += toNum(r['Purchase Value'] || r['Purchases conversion value']);
     });
     return Object.values(map).map(m => {
         m.cpc = m.clicks > 0 ? m.spend / m.clicks : 0;
@@ -576,7 +576,7 @@ function renderDailyChart(canvasId, masterRows, dateFilter) {
             labels,
             datasets: [
                 { label:'Spend', data: filtered.map(r => toNum(r['Amount spent'])), backgroundColor: SAGE+'CC', borderColor: SAGE, borderWidth:1, borderRadius:4, order:2 },
-                { label:'Revenue', data: filtered.map(r => toNum(r['Purchases conversion value'])), backgroundColor: CHARCOAL+'CC', borderColor: CHARCOAL, borderWidth:1, borderRadius:4, order:1 },
+                { label:'Revenue', data: filtered.map(r => toNum(r['Purchase Value'] || r['Purchases conversion value'])), backgroundColor: CHARCOAL+'CC', borderColor: CHARCOAL, borderWidth:1, borderRadius:4, order:1 },
             ]
         },
         options: {
