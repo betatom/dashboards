@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Price — Digital Paid Media Performance Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1" integrity="sha384-jb8JQMbMoBUzgWatfe6COACi2ljcDdZQ2OxczGA3bGNeWe+6DChMTBJemed7ZnvJ" crossorigin="anonymous"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+        :root {
+            --sage: #93B19D;
+            --sage-dark: #6E8F7A;
+            --sage-light: #B5CFBE;
+            --sage-pale: #E8F0EB;
+            --sage-wash: #F4F8F5;
+            --black: #1A1A1A;
+            --charcoal: #2D2D2D;
+            --grey-dark: #555555;
+            --grey-mid: #888888;
+            --grey-light: #C4C4C4;
+            --grey-pale: #F0F0F0;
+            --white: #FFFFFF;
+            --positive: #4CAF50;
+            --negative: #E53935;
+            --amber: #F9A825;
+            --gap: 18px;
+            --radius: 10px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--grey-pale);
+            color: var(--black);
+            line-height: 1.5;
+            min-height: 100vh;
+        }
+
+        .dashboard { max-width: 1260px; margin: 0 auto; padding: var(--gap); }
+
+        /* HEADER */
+        .header {
+            background: var(--black);
+            border-radius: var(--radius);
+            padding: 24px 28px;
+            margin-bottom: var(--gap);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .header-left { display: flex; align-items: center; gap: 18px; }
+        .header-logo svg { height: 44px; width: auto; }
+        .header-logo svg path { fill: var(--sage); }
+        .header-text h1 { font-size: 18px; font-weight: 700; color: var(--white); letter-spacing: -0.3px; }
+        .header-text .subtitle { font-size: 11px; font-weight: 400; color: var(--sage-light); letter-spacing: 1.5px; text-transform: uppercase; margin-top: 2px; }
+        .header-right { text-align: right; }
+        .last-updated { font-size: 11px; color: var(--grey-mid); }
+
+        .refresh-btn {
+            margin-top: 6px; padding: 6px 14px; background: var(--sage-dark); color: var(--white);
+            border: none; border-radius: 6px; font-size: 11px; font-weight: 500; cursor: pointer;
+            font-family: inherit; transition: background 0.2s;
+        }
+        .refresh-btn:hover { background: var(--sage); }
+
+        /* STATUS */
+        .status-bar { display: flex; align-items: center; gap: 8px; margin-bottom: var(--gap); padding: 0 4px; }
+        .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--positive); animation: pulse 2s infinite; }
+        .status-dot.error { background: var(--negative); animation: none; }
+        .status-dot.loading { background: var(--amber); }
+        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+        .status-text { font-size: 11px; color: var(--grey-mid); }
+
+        /* SECTION LABELS */
+        .section-label {
+            font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase;
+            color: var(--sage-dark); margin-bottom: 10px; margin-top: 6px; padding-left: 4px;
+            display: flex; align-items: center; gap: 10px;
+        }
+        .section-label::after { content:''; flex:1; height:1px; background:var(--sage-light); opacity:0.5; }
+
+        /* KPI CARDS */
+        .kpi-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: var(--gap); margin-bottom: var(--gap); }
+
+        .kpi-card {
+            background: var(--white); border-radius: var(--radius); padding: 18px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04); border: 1px solid rgba(0,0,0,0.04);
+            transition: transform 0.15s, box-shadow 0.15s; position: relative; overflow: hidden;
+        }
+        .kpi-card::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; background:var(--sage); opacity:0; transition:opacity 0.15s; }
+        .kpi-card:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.07); }
+        .kpi-card:hover::before { opacity: 1; }
+
+        .kpi-label { font-size: 10px; font-weight: 600; color: var(--grey-mid); text-transform: uppercase; letter-spacing: 0.7px; margin-bottom: 6px; }
+        .kpi-value { font-size: 24px; font-weight: 800; color: var(--black); letter-spacing: -0.5px; line-height: 1.1; }
+        .kpi-sub { font-size: 10px; color: var(--grey-mid); margin-top: 5px; }
+
+        /* CHARTS */
+        .charts-row { display: grid; grid-template-columns: 1fr 1fr; gap: var(--gap); margin-bottom: var(--gap); }
+
+        .chart-card {
+            background: var(--white); border-radius: var(--radius); padding: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04); border: 1px solid rgba(0,0,0,0.04);
+        }
+        .chart-card h3 { font-size: 12px; font-weight: 600; color: var(--charcoal); margin-bottom: 14px; }
+        .chart-card canvas { max-height: 240px; }
+
+        /* TABLES */
+        .table-card {
+            background: var(--white); border-radius: var(--radius); padding: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04); border: 1px solid rgba(0,0,0,0.04);
+            margin-bottom: var(--gap); overflow-x: auto;
+        }
+        .table-card h3 { font-size: 12px; font-weight: 600; color: var(--charcoal); margin-bottom: 14px; }
+
+        .data-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+        .data-table thead th {
+            text-align: left; padding: 8px 12px; border-bottom: 2px solid var(--sage-light);
+            color: var(--grey-mid); font-weight: 600; font-size: 9px; text-transform: uppercase;
+            letter-spacing: 0.7px; white-space: nowrap;
+        }
+        .data-table tbody td { padding: 9px 12px; border-bottom: 1px solid var(--grey-pale); font-weight: 500; color: var(--charcoal); }
+        .data-table tbody tr:last-child td { border-bottom: none; }
+        .data-table tbody tr:hover { background: var(--sage-wash); }
+        .data-table .row-highlight { background: var(--sage-wash); font-weight: 700; }
+        .data-table .name-col { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .data-table .num-right { text-align: right; font-variant-numeric: tabular-nums; }
+        .data-table thead th.num-right { text-align: right; }
+
+        /* FOOTER */
+        .footer { text-align: center; padding: 14px; font-size: 10px; color: var(--grey-light); }
+
+        /* LOADING / ERROR */
+        .loading-overlay { display:flex; flex-direction:column; align-items:center; justify-content:center; padding:80px 20px; color:var(--grey-mid); }
+        .spinner { width:28px; height:28px; border:3px solid var(--grey-pale); border-top-color:var(--sage); border-radius:50%; animation:spin 0.8s linear infinite; margin-bottom:14px; }
+        @keyframes spin { to{transform:rotate(360deg)} }
+        .error-msg { background:#FFF3F3; border:1px solid #FFCDD2; color:var(--negative); padding:16px 20px; border-radius:8px; font-size:12px; margin:20px 0; line-height:1.7; }
+
+        /* RESPONSIVE */
+        @media (max-width:1100px) { .kpi-row { grid-template-columns: repeat(3,1fr); } }
+        @media (max-width:768px) { .header { flex-direction:column; align-items:flex-start; } .kpi-row { grid-template-columns: repeat(2,1fr); } .charts-row { grid-template-columns:1fr; } }
+        @media (max-width:480px) { .kpi-row { grid-template-columns:1fr; } }
+
+        /* PRINT */
+        @media print {
+            body { background:white; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+            .dashboard { max-width:none; padding:8px; }
+            .refresh-btn, .status-bar { display:none; }
+            .kpi-card, .chart-card, .table-card { break-inside:avoid; box-shadow:none; border:1px solid #ddd; }
+            .kpi-card:hover { transform:none; }
+            .section-label { margin-top: 12px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+
+        <header class="header">
+            <div class="header-left">
+                <div class="header-logo">
+                    <svg width="302" height="358" viewBox="0 0 302 358" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M267.058 340.364V203.709H246.285V357.944H301.018V340.364H267.058Z" fill="black"/>
+                        <path d="M212.314 340.364V203.709H191.541V357.944H246.274V340.364H212.314Z" fill="black"/>
+                        <path d="M147.626 261.799C147.758 260.934 147.89 260.06 148.023 259.196V203.72H139.817L109.873 357.945H129.843L135.74 327.879H148.023V311.804H138.627L142.42 292.027C144.423 281.372 146.152 271.305 147.616 261.809L147.626 261.799Z" fill="black"/>
+                        <path d="M161.31 203.709H153.034V259.093C154.355 268.803 155.84 278.188 157.497 287.227L162.093 311.792H153.023V327.868H165.093L170.878 357.934H191.458L161.29 203.709H161.31Z" fill="black"/>
+                        <path d="M101.698 203.709L92.8112 264.045L91.3064 274.325C90.3709 281.401 89.4965 288.58 88.6628 295.901C87.8188 303.221 87.0766 310.827 86.4157 318.676C85.7446 311.223 84.9007 303.394 83.8534 295.199C82.8366 287.014 81.5453 278.127 80.01 268.529L69.6185 203.699H53.6348L42.5519 270.43C41.4843 276.622 40.498 283.384 39.5931 290.715C38.6881 298.036 37.8544 306.058 37.0511 314.792L36.5631 319.774C36.4207 318.453 36.3191 317.344 36.258 316.48C36.1869 315.616 36.1157 315.016 36.0547 314.68L34.9667 301.595C34.56 296.877 33.9601 291.65 33.167 285.926L31.4589 275.331L20.9759 203.709H0.894531L27.5646 357.934H44.2398L55.526 291.315C55.6582 290.847 55.8615 289.647 56.1259 287.716C56.3902 285.794 56.7664 283.13 57.2342 279.734L59.3287 264.95C59.3999 264.411 59.5422 262.937 59.7863 260.496C60.01 258.066 60.3048 254.66 60.6302 250.268C60.7014 249.536 60.7929 248.6 60.9352 247.471C61.0674 246.343 61.1996 245.011 61.3419 243.476L61.83 249.861C62.1655 253.521 62.4807 256.561 62.7756 258.961C63.0806 261.35 63.2942 263.15 63.4263 264.35L65.5311 279.734C66.0598 283.323 66.4665 286.099 66.7309 288.021C66.9952 289.952 67.1579 291.061 67.2189 291.325L78.1086 357.944H94.2957L121.566 203.72H101.677L101.698 203.709Z" fill="black"/>
+                        <path d="M212.099 42.3765V196.611H191.316V120.302H160.854V196.611H140.081V60.5666H121.535V196.622H101.159V60.5666H77.1934V42.3866H140.081V42.3765H160.854V102.722H191.316V42.3765H212.099Z" fill="black"/>
+                        <path d="M65.1552 123.028C63.4979 117.629 61.0576 113.084 57.865 109.414C54.6723 105.723 50.717 102.927 46.0297 101.015C41.3322 99.1137 35.9534 98.1579 29.9036 98.1579H27.4023L32.3947 59.8763H65.6535V42.2148H16.6041L7.626 116.236C11.8863 114.975 16.1161 114.365 20.3052 114.365C37.2854 114.365 45.7755 124.126 45.7755 143.669C45.7755 153.999 43.7826 162.225 39.7867 168.346C35.7907 174.396 30.4018 177.426 23.6097 177.426C18.8106 177.426 12.8522 175.586 5.73479 171.895L0.539062 190.054C9.32402 194.264 17.4786 196.368 25.0129 196.368C38.4038 196.368 48.8462 191.539 56.3805 181.869C63.9046 172.057 67.6667 158.605 67.6667 141.493C67.6667 134.589 66.8431 128.427 65.1654 123.049L65.1552 123.028Z" fill="black"/>
+                        <path d="M65.6124 5.09193V0.841797H52.3027V38.0457H65.6124V33.8057H57.3053V21.1062H64.6871V16.8764H57.3053V5.09193H65.6124Z" fill="black"/>
+                        <path d="M45.5339 0.841797V15.402H38.1928V0.841797H33.1699V38.0457H38.1928V19.642H45.5339V38.0457H50.5466V0.841797H45.5339Z" fill="black"/>
+                        <path d="M16.9512 0.841797V5.22411H22.7366V38.0457H27.6578V5.22411H33.2603V0.841797H16.9512Z" fill="black"/>
+                    </svg>
+                </div>
+                <div class="header-text">
+                    <h1>Digital Paid Media Performance</h1>
+                    <div class="subtitle">The Price &middot; Live Dashboard</div>
+                </div>
+            </div>
+            <div class="header-right">
+                <div class="last-updated" id="last-updated">Loading...</div>
+                <button class="refresh-btn" onclick="loadAllData()">Refresh Data</button>
+            </div>
+        </header>
+
+        <div class="status-bar">
+            <div class="status-dot loading" id="status-dot"></div>
+            <span class="status-text" id="status-text">Connecting to data sources...</span>
+        </div>
+
+        <div id="dashboard-content">
+            <div class="loading-overlay"><div class="spinner"></div><span>Fetching live data from Google Sheets...</span></div>
+        </div>
+
+        <footer class="footer">Data synced via SyncWith &middot; Dashboard by The 5th Word</footer>
+    </div>
+
+<script>
+/* ═══════════════════════════════════════════════
+   CONFIG
+   ═══════════════════════════════════════════════ */
+const URLS = {
+    master:   'https://docs.google.com/spreadsheets/d/e/2PACX-1vSnc7WO9gTwY92cd6a5k1xNz1KIv2yccT5xgmcMnc7InaBO0y4aFUejcYJ5D2c43AhaclWAWqMXqHt0/pub?gid=2129030269&single=true&output=csv',
+    creative: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSnc7WO9gTwY92cd6a5k1xNz1KIv2yccT5xgmcMnc7InaBO0y4aFUejcYJ5D2c43AhaclWAWqMXqHt0/pub?gid=941993287&single=true&output=csv',
+    audience: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSnc7WO9gTwY92cd6a5k1xNz1KIv2yccT5xgmcMnc7InaBO0y4aFUejcYJ5D2c43AhaclWAWqMXqHt0/pub?gid=792299986&single=true&output=csv',
+    googleMaster: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSnc7WO9gTwY92cd6a5k1xNz1KIv2yccT5xgmcMnc7InaBO0y4aFUejcYJ5D2c43AhaclWAWqMXqHt0/pub?gid=251870387&single=true&output=csv',
+};
+
+const SAGE = '#93B19D';
+const CHARCOAL = '#2D2D2D';
+const COLORS = ['#93B19D', '#2D2D2D', '#D4A574', '#7A9DBF', '#C47E7E', '#8B7EC4'];
+
+let charts = {};
+
+/* ═══════════════════════════════════════════════
+   CSV PARSING
+   ═══════════════════════════════════════════════ */
+function parseCSVLine(line) {
+    const r = []; let cur = '', inQ = false;
+    for (let i = 0; i < line.length; i++) {
+        const c = line[i];
+        if (inQ) {
+            if (c === '"' && line[i+1] === '"') { cur += '"'; i++; }
+            else if (c === '"') { inQ = false; }
+            else { cur += c; }
+        } else {
+            if (c === '"') { inQ = true; }
+            else if (c === ',') { r.push(cur); cur = ''; }
+            else { cur += c; }
+        }
+    }
+    r.push(cur);
+    return r;
+}
+
+function parseCSV(text) {
+    const lines = text.trim().split('\n').filter(l => l.trim());
+    if (lines.length < 2) return { headers: [], rows: [] };
+    const headers = parseCSVLine(lines[0]).map(h => h.trim());
+    const rows = [];
+    for (let i = 1; i < lines.length; i++) {
+        const vals = parseCSVLine(lines[i]);
+        const row = {};
+        headers.forEach((h, idx) => { row[h] = (vals[idx] || '').trim(); });
+        rows.push(row);
+    }
+    return { headers, rows };
+}
+
+/* ═══════════════════════════════════════════════
+   NUMBER UTILS
+   ═══════════════════════════════════════════════ */
+function toNum(val) {
+    if (val === undefined || val === null || val === '') return 0;
+    const cleaned = String(val).replace(/[£$€,%\s]/g, '').replace(/,/g, '');
+    const n = parseFloat(cleaned);
+    return isNaN(n) ? 0 : n;
+}
+
+function fmt(n, type) {
+    switch(type) {
+        case 'gbp':
+            if (n >= 1000000) return '\u00A3' + (n/1e6).toFixed(1) + 'M';
+            if (n >= 1000) return '\u00A3' + (n/1e3).toFixed(1) + 'K';
+            return '\u00A3' + n.toFixed(2);
+        case 'gbp-short':
+            if (n >= 1000000) return '\u00A3' + (n/1e6).toFixed(1) + 'M';
+            if (n >= 1000) return '\u00A3' + (n/1e3).toFixed(1) + 'K';
+            return '\u00A3' + n.toFixed(0);
+        case 'num':
+            if (n >= 1000000) return (n/1e6).toFixed(1) + 'M';
+            if (n >= 1000) return (n/1e3).toFixed(1) + 'K';
+            return n.toLocaleString('en-GB', { maximumFractionDigits: 0 });
+        case 'pct': return n.toFixed(2) + '%';
+        case 'roas': return n.toFixed(2) + 'x';
+        default: return String(n);
+    }
+}
+
+/* ═══════════════════════════════════════════════
+   DATE HELPERS
+   ═══════════════════════════════════════════════ */
+function getLastWeekRange() {
+    const today = new Date();
+    today.setHours(0,0,0,0);
+    const day = today.getDay(); // 0=Sun, 1=Mon...
+    // Find most recent Monday
+    const thisMon = new Date(today);
+    thisMon.setDate(today.getDate() - ((day + 6) % 7));
+    // Last week is the Mon-Sun before this Monday
+    const lastSun = new Date(thisMon);
+    lastSun.setDate(thisMon.getDate() - 1);
+    const lastMon = new Date(lastSun);
+    lastMon.setDate(lastSun.getDate() - 6);
+
+    return {
+        start: toLocalISO(lastMon),
+        end: toLocalISO(lastSun),
+        label: formatDateShort(lastMon) + ' \u2013 ' + formatDateShort(lastSun),
+    };
+}
+
+function toLocalISO(d) {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return y + '-' + m + '-' + day;
+}
+
+function formatDateShort(d) {
+    return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+}
+
+function isInRange(dateStr, start, end) {
+    return dateStr >= start && dateStr <= end;
+}
+
+/* ═══════════════════════════════════════════════
+   AGGREGATION
+   ═══════════════════════════════════════════════ */
+function aggregateMaster(rows, dateFilter) {
+    const filtered = dateFilter
+        ? rows.filter(r => isInRange(r['Date'], dateFilter.start, dateFilter.end))
+        : rows;
+    const s = { spend:0, reach:0, clicks:0, impressions:0, purchases:0, convValue:0 };
+    filtered.forEach(r => {
+        s.spend += toNum(r['Amount spent']);
+        s.reach += toNum(r['Reach']);
+        s.clicks += toNum(r['Link Clicks']);
+        s.impressions += toNum(r['Impressions']);
+        s.purchases += toNum(r['Purchases']);
+        s.convValue += toNum(r['Purchases conversion value']);
+    });
+    s.ctr = s.impressions > 0 ? (s.clicks / s.impressions) * 100 : 0;
+    s.cpc = s.clicks > 0 ? s.spend / s.clicks : 0;
+    s.cvr = s.clicks > 0 ? (s.purchases / s.clicks) * 100 : 0;
+    s.roas = s.spend > 0 ? s.convValue / s.spend : 0;
+    s.apv = s.purchases > 0 ? s.convValue / s.purchases : 0;
+    s.cpp = s.purchases > 0 ? s.spend / s.purchases : 0;
+    return s;
+}
+
+function aggregateGoogleMaster(rows, dateFilter) {
+    const filtered = dateFilter
+        ? rows.filter(r => isInRange(r['Day'], dateFilter.start, dateFilter.end))
+        : rows;
+    const s = { spend:0, clicks:0, impressions:0, interactions:0, convValue:0 };
+    filtered.forEach(r => {
+        s.spend += toNum(r['Cost']);
+        s.clicks += toNum(r['Clicks']);
+        s.impressions += toNum(r['Impr.']);
+        s.interactions += toNum(r['Interactions']);
+        s.convValue += toNum(r['Conv. value']);
+    });
+    s.cpc = s.clicks > 0 ? s.spend / s.clicks : 0;
+    s.roas = s.spend > 0 ? s.convValue / s.spend : 0;
+    s.interactionRate = s.impressions > 0 ? (s.interactions / s.impressions) * 100 : 0;
+    s.ctr = s.impressions > 0 ? (s.clicks / s.impressions) * 100 : 0;
+    return s;
+}
+
+function aggregateByName(rows, nameCol, dateCol, dateFilter) {
+    const filtered = dateFilter
+        ? rows.filter(r => isInRange(r[dateCol], dateFilter.start, dateFilter.end))
+        : rows;
+    const map = {};
+    filtered.forEach(r => {
+        const name = r[nameCol] || 'Unknown';
+        if (!map[name]) map[name] = { name, spend:0, impressions:0, clicks:0, purchases:0, convValue:0 };
+        const m = map[name];
+        m.spend += toNum(r['Amount spent']);
+        m.impressions += toNum(r['Impressions']);
+        m.clicks += toNum(r['Link clicks'] || r['Link Clicks']);
+        m.purchases += toNum(r['Purchases']);
+        m.convValue += toNum(r['Purchases conversion value']);
+    });
+    return Object.values(map).map(m => {
+        m.cpc = m.clicks > 0 ? m.spend / m.clicks : 0;
+        m.ctr = m.impressions > 0 ? (m.clicks / m.impressions) * 100 : 0;
+        m.cvr = m.clicks > 0 ? (m.purchases / m.clicks) * 100 : 0;
+        m.roas = m.spend > 0 ? m.convValue / m.spend : 0;
+        m.apv = m.purchases > 0 ? m.convValue / m.purchases : 0;
+        m.cpp = m.purchases > 0 ? m.spend / m.purchases : 0;
+        return m;
+    }).sort((a, b) => b.spend - a.spend);
+}
+
+/* ═══════════════════════════════════════════════
+   FETCH WITH CORS FALLBACK
+   ═══════════════════════════════════════════════ */
+async function fetchCSV(url) {
+    const cb = '&_cb=' + Date.now();
+    try {
+        const r = await fetch(url + cb, {mode:'cors'});
+        if (r.ok) { const t = await r.text(); if (t.includes(',')) return t; }
+    } catch(e) {}
+    try {
+        const r = await fetch('https://api.allorigins.win/raw?url=' + encodeURIComponent(url + cb));
+        if (r.ok) { const t = await r.text(); if (t.includes(',')) return t; }
+    } catch(e) {}
+    try {
+        const r = await fetch('https://corsproxy.io/?' + encodeURIComponent(url + cb));
+        if (r.ok) { const t = await r.text(); if (t.includes(',')) return t; }
+    } catch(e) {}
+    throw new Error('Could not fetch data. Ensure sheets are published and try serving via localhost:8000.');
+}
+
+/* ═══════════════════════════════════════════════
+   RENDER: KPI ROW
+   ═══════════════════════════════════════════════ */
+function kpiHTML(m) {
+    return `
+    <div class="kpi-row">
+        <div class="kpi-card">
+            <div class="kpi-label">Spend</div>
+            <div class="kpi-value">${fmt(m.spend,'gbp')}</div>
+            <div class="kpi-sub">CPC: ${fmt(m.cpc,'gbp')}</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-label">ROAS</div>
+            <div class="kpi-value">${fmt(m.roas,'roas')}</div>
+            <div class="kpi-sub">Revenue: ${fmt(m.convValue,'gbp')}</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-label">Purchases</div>
+            <div class="kpi-value">${fmt(m.purchases,'num')}</div>
+            <div class="kpi-sub">Cost/purchase: ${fmt(m.cpp,'gbp')}</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-label">Link Clicks</div>
+            <div class="kpi-value">${fmt(m.clicks,'num')}</div>
+            <div class="kpi-sub">CTR: ${fmt(m.ctr,'pct')}</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-label">Reach</div>
+            <div class="kpi-value">${fmt(m.reach,'num')}</div>
+            <div class="kpi-sub">Impressions: ${fmt(m.impressions,'num')}</div>
+        </div>
+    </div>`;
+}
+
+function googleKpiHTML(m) {
+    return `
+    <div class="kpi-row">
+        <div class="kpi-card">
+            <div class="kpi-label">Spend</div>
+            <div class="kpi-value">${fmt(m.spend,'gbp')}</div>
+            <div class="kpi-sub">Avg CPC: ${fmt(m.cpc,'gbp')}</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-label">ROAS</div>
+            <div class="kpi-value">${fmt(m.roas,'roas')}</div>
+            <div class="kpi-sub">Revenue: ${fmt(m.convValue,'gbp')}</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-label">Conv. Value</div>
+            <div class="kpi-value">${fmt(m.convValue,'gbp')}</div>
+            <div class="kpi-sub">Avg CPC: ${fmt(m.cpc,'gbp')}</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-label">Clicks</div>
+            <div class="kpi-value">${fmt(m.clicks,'num')}</div>
+            <div class="kpi-sub">CTR: ${fmt(m.ctr,'pct')}</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-label">Impressions</div>
+            <div class="kpi-value">${fmt(m.impressions,'num')}</div>
+            <div class="kpi-sub">Interactions: ${fmt(m.interactions,'num')}</div>
+        </div>
+    </div>`;
+}
+
+function renderGoogleDailyChart(canvasId, rows, dateFilter) {
+    const filtered = dateFilter
+        ? rows.filter(r => isInRange(r['Day'], dateFilter.start, dateFilter.end))
+        : rows.filter(r => toNum(r['Cost']) > 0);
+    filtered.sort((a, b) => a['Day'].localeCompare(b['Day']));
+    const labels = filtered.map(r => {
+        const d = new Date(r['Day'] + 'T00:00:00');
+        return d.toLocaleDateString('en-GB', { day:'numeric', month:'short' });
+    });
+    const ctx = document.getElementById(canvasId);
+    if (!ctx) return;
+    charts[canvasId] = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels,
+            datasets: [
+                { label:'Spend', data: filtered.map(r => toNum(r['Cost'])), backgroundColor: SAGE+'CC', borderColor: SAGE, borderWidth:1, borderRadius:4, order:2 },
+                { label:'Revenue', data: filtered.map(r => toNum(r['Conv. value'])), backgroundColor: CHARCOAL+'CC', borderColor: CHARCOAL, borderWidth:1, borderRadius:4, order:1 },
+            ]
+        },
+        options: {
+            responsive:true, maintainAspectRatio:false,
+            plugins: { legend: { position:'top', labels: { usePointStyle:true, padding:12, font:{size:10,family:'Inter'} } },
+                tooltip: { callbacks: { label: ctx => ctx.dataset.label + ': ' + fmt(ctx.parsed.y,'gbp') } }
+            },
+            scales: { x:{grid:{display:false}, ticks:{font:{size:10}}}, y:{beginAtZero:true, ticks:{callback:v=>fmt(v,'gbp-short'),font:{size:10}}, grid:{color:'#f0f0f0'}} }
+        }
+    });
+}
+
+/* ═══════════════════════════════════════════════
+   RENDER: BREAKDOWN TABLE
+   ═══════════════════════════════════════════════ */
+function breakdownTableHTML(items) {
+    if (!items.length) return '<p style="color:var(--grey-mid);font-size:12px;padding:8px 0;">No data for this period.</p>';
+    let html = `<table class="data-table"><thead><tr>
+        <th>Name</th><th class="num-right">Spend</th><th class="num-right">Revenue</th>
+        <th class="num-right">ROAS</th><th class="num-right">Purchases</th>
+        <th class="num-right">CPC</th><th class="num-right">CTR</th>
+        <th class="num-right">CVR</th><th class="num-right">Clicks</th>
+        <th class="num-right">Impressions</th>
+    </tr></thead><tbody>`;
+    items.forEach(m => {
+        html += `<tr>
+            <td class="name-col" title="${m.name}">${m.name}</td>
+            <td class="num-right">${fmt(m.spend,'gbp')}</td>
+            <td class="num-right">${fmt(m.convValue,'gbp')}</td>
+            <td class="num-right">${fmt(m.roas,'roas')}</td>
+            <td class="num-right">${fmt(m.purchases,'num')}</td>
+            <td class="num-right">${fmt(m.cpc,'gbp')}</td>
+            <td class="num-right">${fmt(m.ctr,'pct')}</td>
+            <td class="num-right">${fmt(m.cvr,'pct')}</td>
+            <td class="num-right">${fmt(m.clicks,'num')}</td>
+            <td class="num-right">${fmt(m.impressions,'num')}</td>
+        </tr>`;
+    });
+    // Totals
+    const t = items.reduce((a, m) => {
+        a.spend+=m.spend; a.convValue+=m.convValue; a.purchases+=m.purchases;
+        a.clicks+=m.clicks; a.impressions+=m.impressions; return a;
+    }, {spend:0,convValue:0,purchases:0,clicks:0,impressions:0});
+    t.roas = t.spend>0 ? t.convValue/t.spend : 0;
+    t.cpc = t.clicks>0 ? t.spend/t.clicks : 0;
+    t.ctr = t.impressions>0 ? (t.clicks/t.impressions)*100 : 0;
+    t.cvr = t.clicks>0 ? (t.purchases/t.clicks)*100 : 0;
+    html += `<tr class="row-highlight">
+        <td><strong>Total</strong></td>
+        <td class="num-right"><strong>${fmt(t.spend,'gbp')}</strong></td>
+        <td class="num-right"><strong>${fmt(t.convValue,'gbp')}</strong></td>
+        <td class="num-right"><strong>${fmt(t.roas,'roas')}</strong></td>
+        <td class="num-right"><strong>${fmt(t.purchases,'num')}</strong></td>
+        <td class="num-right"><strong>${fmt(t.cpc,'gbp')}</strong></td>
+        <td class="num-right"><strong>${fmt(t.ctr,'pct')}</strong></td>
+        <td class="num-right"><strong>${fmt(t.cvr,'pct')}</strong></td>
+        <td class="num-right"><strong>${fmt(t.clicks,'num')}</strong></td>
+        <td class="num-right"><strong>${fmt(t.impressions,'num')}</strong></td>
+    </tr></tbody></table>`;
+    return html;
+}
+
+/* ═══════════════════════════════════════════════
+   RENDER: CHARTS
+   ═══════════════════════════════════════════════ */
+function destroyCharts() { Object.values(charts).forEach(c => c.destroy()); charts = {}; }
+
+function renderDailyChart(canvasId, masterRows, dateFilter) {
+    const filtered = dateFilter
+        ? masterRows.filter(r => isInRange(r['Date'], dateFilter.start, dateFilter.end))
+        : masterRows.filter(r => toNum(r['Amount spent']) > 0);
+    filtered.sort((a, b) => a['Date'].localeCompare(b['Date']));
+    const labels = filtered.map(r => {
+        const d = new Date(r['Date'] + 'T00:00:00');
+        return d.toLocaleDateString('en-GB', { day:'numeric', month:'short' });
+    });
+    const ctx = document.getElementById(canvasId);
+    if (!ctx) return;
+    charts[canvasId] = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels,
+            datasets: [
+                { label:'Spend', data: filtered.map(r => toNum(r['Amount spent'])), backgroundColor: SAGE+'CC', borderColor: SAGE, borderWidth:1, borderRadius:4, order:2 },
+                { label:'Revenue', data: filtered.map(r => toNum(r['Purchases conversion value'])), backgroundColor: CHARCOAL+'CC', borderColor: CHARCOAL, borderWidth:1, borderRadius:4, order:1 },
+            ]
+        },
+        options: {
+            responsive:true, maintainAspectRatio:false,
+            plugins: { legend: { position:'top', labels: { usePointStyle:true, padding:12, font:{size:10,family:'Inter'} } },
+                tooltip: { callbacks: { label: ctx => ctx.dataset.label + ': ' + fmt(ctx.parsed.y,'gbp') } }
+            },
+            scales: { x:{grid:{display:false}, ticks:{font:{size:10}}}, y:{beginAtZero:true, ticks:{callback:v=>fmt(v,'gbp-short'),font:{size:10}}, grid:{color:'#f0f0f0'}} }
+        }
+    });
+}
+
+function renderBreakdownChart(canvasId, items, metricKey, fmtType, label) {
+    const ctx = document.getElementById(canvasId);
+    if (!ctx || !items.length) return;
+    charts[canvasId] = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: items.map(m => m.name.length > 28 ? m.name.slice(0,25)+'...' : m.name),
+            datasets: [{
+                label, data: items.map(m => m[metricKey]),
+                backgroundColor: items.map((_, i) => COLORS[i % COLORS.length] + 'CC'),
+                borderColor: items.map((_, i) => COLORS[i % COLORS.length]),
+                borderWidth:1, borderRadius:4,
+            }]
+        },
+        options: {
+            responsive:true, maintainAspectRatio:false,
+            plugins: { legend:{display:false}, tooltip: { callbacks: { label: ctx => fmt(ctx.parsed.y, fmtType) } } },
+            scales: {
+                x: { grid:{display:false}, ticks:{font:{size:9}} },
+                y: { beginAtZero:true, grid:{color:'#f0f0f0'}, ticks:{font:{size:10}} }
+            }
+        }
+    });
+}
+
+/* ═══════════════════════════════════════════════
+   MAIN RENDER
+   ═══════════════════════════════════════════════ */
+function renderDashboard(masterData, creativeData, audienceData, googleMasterData) {
+    const week = getLastWeekRange();
+    const content = document.getElementById('dashboard-content');
+
+    const masterAll = aggregateMaster(masterData.rows, null);
+    const masterWeek = aggregateMaster(masterData.rows, week);
+    const creativeAll = aggregateByName(creativeData.rows, 'Ad Name', 'Day', null);
+    const creativeWeek = aggregateByName(creativeData.rows, 'Ad Name', 'Day', week);
+    const audienceAll = aggregateByName(audienceData.rows, 'Adset Name', 'Day', null);
+    const audienceWeek = aggregateByName(audienceData.rows, 'Adset Name', 'Day', week);
+    const googleAll = aggregateGoogleMaster(googleMasterData.rows, null);
+    const googleWeek = aggregateGoogleMaster(googleMasterData.rows, week);
+
+    content.innerHTML = `
+        <!-- META: OVERALL LAST WEEK -->
+        <div class="section-label">Meta Ads \u2014 Overall Performance \u2014 Last Week (${week.label})</div>
+        ${kpiHTML(masterWeek)}
+
+        <!-- META: OVERALL ALL TIME -->
+        <div class="section-label">Meta Ads \u2014 Overall Performance \u2014 All Time</div>
+        ${kpiHTML(masterAll)}
+
+        <!-- META: DAILY TREND -->
+        <div class="section-label">Meta Ads \u2014 Daily Trend</div>
+        <div class="charts-row">
+            <div class="chart-card"><h3>Last Week \u2014 Spend vs Revenue</h3><canvas id="chart-daily-week" height="240"></canvas></div>
+            <div class="chart-card"><h3>All Time \u2014 Spend vs Revenue</h3><canvas id="chart-daily-all" height="240"></canvas></div>
+        </div>
+
+        <!-- META: CREATIVE -->
+        <div class="section-label">Meta Ads \u2014 Creative Performance</div>
+        <div class="table-card">
+            <h3>Creative Breakdown \u2014 Last Week (${week.label})</h3>
+            ${breakdownTableHTML(creativeWeek)}
+        </div>
+        <div class="table-card">
+            <h3>Creative Breakdown \u2014 All Time</h3>
+            ${breakdownTableHTML(creativeAll)}
+        </div>
+
+        <!-- META: AUDIENCE -->
+        <div class="section-label">Meta Ads \u2014 Audience (Ad Set) Performance</div>
+        <div class="table-card">
+            <h3>Ad Set Breakdown \u2014 Last Week (${week.label})</h3>
+            ${breakdownTableHTML(audienceWeek)}
+        </div>
+        <div class="table-card">
+            <h3>Ad Set Breakdown \u2014 All Time</h3>
+            ${breakdownTableHTML(audienceAll)}
+        </div>
+
+        <!-- GOOGLE ADS: OVERALL LAST WEEK -->
+        <div class="section-label">Google Ads \u2014 Overall Performance \u2014 Last Week (${week.label})</div>
+        ${googleKpiHTML(googleWeek)}
+
+        <!-- GOOGLE ADS: OVERALL ALL TIME -->
+        <div class="section-label">Google Ads \u2014 Overall Performance \u2014 All Time</div>
+        ${googleKpiHTML(googleAll)}
+
+        <!-- GOOGLE ADS: DAILY TREND -->
+        <div class="section-label">Google Ads \u2014 Daily Trend</div>
+        <div class="charts-row">
+            <div class="chart-card"><h3>Last Week \u2014 Spend vs Revenue</h3><canvas id="chart-google-week" height="240"></canvas></div>
+            <div class="chart-card"><h3>All Time \u2014 Spend vs Revenue</h3><canvas id="chart-google-all" height="240"></canvas></div>
+        </div>
+    `;
+
+    destroyCharts();
+    renderDailyChart('chart-daily-week', masterData.rows, week);
+    renderDailyChart('chart-daily-all', masterData.rows, null);
+    renderGoogleDailyChart('chart-google-week', googleMasterData.rows, week);
+    renderGoogleDailyChart('chart-google-all', googleMasterData.rows, null);
+}
+
+/* ═══════════════════════════════════════════════
+   LOAD ALL DATA
+   ═══════════════════════════════════════════════ */
+async function loadAllData() {
+    const dot = document.getElementById('status-dot');
+    const txt = document.getElementById('status-text');
+    const upd = document.getElementById('last-updated');
+
+    dot.className = 'status-dot loading';
+    txt.textContent = 'Fetching 4 data sources...';
+
+    try {
+        const [masterCSV, creativeCSV, audienceCSV, googleMasterCSV] = await Promise.all([
+            fetchCSV(URLS.master),
+            fetchCSV(URLS.creative),
+            fetchCSV(URLS.audience),
+            fetchCSV(URLS.googleMaster),
+        ]);
+
+        const masterData = parseCSV(masterCSV);
+        const creativeData = parseCSV(creativeCSV);
+        const audienceData = parseCSV(audienceCSV);
+        const googleMasterData = parseCSV(googleMasterCSV);
+
+        if (masterData.rows.length === 0) throw new Error('Master data returned no rows.');
+
+        renderDashboard(masterData, creativeData, audienceData, googleMasterData);
+
+        const now = new Date();
+        upd.textContent = 'Last refreshed: ' + now.toLocaleString('en-GB', { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
+        dot.className = 'status-dot';
+        txt.textContent = 'Live \u2014 all 4 data sources loaded (' + masterData.rows.length + ' Meta days, ' + googleMasterData.rows.length + ' Google days, ' + creativeData.rows.length + ' creative rows, ' + audienceData.rows.length + ' audience rows)';
+
+    } catch(err) {
+        console.error('Load error:', err);
+        dot.className = 'status-dot error';
+        txt.textContent = 'Error loading data';
+        document.getElementById('dashboard-content').innerHTML = `
+            <div class="error-msg">
+                <strong>Could not load data.</strong><br>${err.message}<br><br>
+                <strong>To fix:</strong> serve this file from a local web server. Open Terminal, <code>cd</code> to the folder, then run:<br>
+                <code style="background:#f5f5f5;padding:4px 8px;border-radius:4px;font-size:12px;">python3 -m http.server 8000</code><br>
+                Then open <a href="http://localhost:8000/the-price-dashboard.html" style="color:#93B19D;">http://localhost:8000/the-price-dashboard.html</a>
+            </div>`;
+    }
+}
+
+loadAllData();
+setInterval(loadAllData, 5 * 60 * 1000);
+</script>
+</body>
+</html>
